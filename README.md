@@ -1,7 +1,7 @@
 # TESTE_API_AMO_OFICIAL
 teste como resultado de processamento para obtenção de combinações de voos e valores finais.
 
-PADRÕES PARA A REALIZAÇÃO DAS REQUISICOES :
+PADRÃO PARA A REALIZAÇÃO DA REQUISIÇÃO :
 
 ![image](https://user-images.githubusercontent.com/85443836/149560212-e17c9cd7-02b5-4ca4-a1c3-6ea898552b35.png)
 
