@@ -1,6 +1,9 @@
 
-from flask import Flask
 
+
+
+from flask import Flask
+from flask import jsonify
 import pandas as pd
 import requests
 from datetime import date, time, datetime, timedelta
@@ -16,8 +19,14 @@ def buscar(ida,volta,data_saida,data_volta):
   data1 = data_saida
   data2 =data_volta
 
-  str_valida = 'VERIFIQUE OS DADOS DE ENTRADA, POIS AS DATAS E DESTINOS NÃO PODE SER IGUAIS !'
+  
+### FUNÇÃO QUE TEM COMO OBJETIVO REALIZAR A BUSCA NA API DE TERCEIROS ###
+  
   def busca_completa(destino_origem,destino_final,data_ida,data_volta):
+      
+### FUNÇÃO QUE TEM POR OBJETIVO VALIDAR E TRATAR OS DADOS DE DATA ###
+      
+      
     def valida_destino(data_chegada , data_partida):
 
       hora_str_chegada = str(data_chegada)
@@ -26,6 +35,8 @@ def buscar(ida,volta,data_saida,data_volta):
       hora_partida= datetime.strptime(hora_str_partida, "%Y-%m-%d")
       tempo_voo = str(hora_chegada - hora_partida)
       return tempo_voo
+
+### FUNÇÃO QUE TEM COMO OBJETIVO CALCULAR A VELOCIDADE DA VIAGEM ###
 
     def velocidade_voo(data_chegada , data_partida,distancia):
           hora_str_chegada = str(data_chegada)
@@ -39,7 +50,9 @@ def buscar(ida,volta,data_saida,data_volta):
           tempo_gasto = round(int(valores_conv[0])+(int(valores_conv[1])/60)+((int(valores_conv[2]))/60)/60,2)
           velocidade = round(distancia/tempo_gasto,2)
           return velocidade
-          
+      
+### FUNÇÃO QUE TEM COMO OBJETIVO CALCULAR A DISTANCIA UTILIZANDO A LAT E LONG ###
+      
     def haversine(lon1, lat1, lon2, lat2):
         lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
         dlon = lon2 - lon1 
@@ -48,6 +61,8 @@ def buscar(ida,volta,data_saida,data_volta):
         c = 2 * asin(sqrt(a)) 
         r = 6371 # Radius of earth in kilometers. Use 3956 for miles
         return c * r
+    
+#### FUNÇÃO QUE TEM COMO OBJETIVO REALIZAR TANTO A BUSCA DE IDA E BUSCA DE VOLTA DA VIAGEM ####
 
     def busca_voos(iata_partida,iata_chegada,data_viagem):
         chave_key ='qEbvlDxInweeAIjmOzEl9vKKKMrdkvLV'
@@ -85,7 +100,7 @@ def buscar(ida,volta,data_saida,data_volta):
                   'TOTAL - (R$)':total_valor}
         opcoes_pass = pd.DataFrame(data=tabela)
         return opcoes_pass
-      #criar condiçoes de validação
+      
     if str(destino_origem) != str(destino_final) :
       valida_data_final = str(valida_destino(data_volta,data_ida))
       valida_data_final = valida_data_final.split(' ')
@@ -103,6 +118,8 @@ def buscar(ida,volta,data_saida,data_volta):
     else :
       print('VERIFIQUE OS DADOS DE ENTRADA, POIS OS DESTINOS NÃO PODEM SER IGUAIS.')
       return str('F'),str('F')
+
+### FUNÇÃO QUE REALIZA A COMBINAÇÃO E POSSIBILIDADES DE VOOS OFERECIDOS ###
 
   def combina_voos(x ,y):
     data_ida_volta= []
@@ -144,11 +161,10 @@ def buscar(ida,volta,data_saida,data_volta):
                           'VELOCIDADE: IDA/VOLTA':velocidade_ida_volta,'CUSTO-KM: IDA/VOLTA':custo_ida_volta,
                           'PASSAGEM: IDA/VOLTA':passagem_ida_volta,'TAXA-SERV: IDA/VOLTA':taxa_ida_volta,
                           'TOTAL':total_ida_volta}
-    dados_comb = pd.DataFrame(data=dic_valores)
-    dados_comb = dados_comb.sort_values(by=['TOTAL'])
-    return dados_comb
+    return dic_valores
 
-  
+  ### FUNÇÃO QUE TEM COMO OBJETIVO VALIDAR SE O AEROPORTO ESTA NA BASE DE DADOS ###
+
   def valida(aero_1,aero_2):
 
     url = f'http://stub.2xt.com.br/air/airports/qEbvlDxInweeAIjmOzEl9vKKKMrdkvLV'
@@ -157,10 +173,8 @@ def buscar(ida,volta,data_saida,data_volta):
     obj = json.loads(res)
     if (aero_1 in obj)  :
       return True
-    else:
+    if str(aero_1) == str(aero_2):
       return False
-
-
 
    
   dado_inicio = local_ida.upper()
@@ -170,24 +184,39 @@ def buscar(ida,volta,data_saida,data_volta):
   valida_1 = valida(dado_inicio,dado_final)
 
 
-  if valida_1 and len(data_de_ida)==10 and len(data_de_volta)==10 :
+  if valida_1 and len(data_de_ida)==10 and len(data_de_volta)==10 and str(dado_inicio) != str( dado_final) :
 
     dados_1,dados_2 = busca_completa(dado_inicio,dado_final,data_de_ida,data_de_volta)
 
     if type(dados_1)!= str:
       
-      x = combina_voos(dados_1,dados_2)
-      js = x.to_json(orient = 'columns')
-      return js
+      voos_combinados = combina_voos(dados_1,dados_2)
+      response = app.response_class(
+        response=json.dumps(voos_combinados),
+        status=200,
+        mimetype='application/json')
+      return response
+
   else:
-    if valida_1 == False:
-      return 'AEROPORTO INDISPONIVEL PARA CONSULTA / ACRONIMOS INVALIDOS DEVE SEGUIR O PADRÃO (ABC)'
+    if (valida_1 == False) or dado_inicio == dado_final  :
+      return ('AEROPORTO INDISPONIVEL PARA CONSULTA / ACRONIMOS INVALIDOS DEVE SEGUIR O PADRÃO (ABC) / AEROPORTOS NÃO PODEM SER IGUAIS',404)
     else :
-      return 'DATA INVALIDA : DATA DE VOLTA NÃO PODE SER IGUAL A IDA  /  VOCÊ DEVE SEGUIR PADRÃO (AAAA-MM-DD) '
+      return ('DATA INVALIDA : VOCÊ DEVE SEGUIR PADRÃO (AAAA-MM-DD) ',409)
+  if data_de_ida == data_de_volta  :
+    return ('ATENÇÃO : DATA DE IDA E IGUAL A DATA DE VOLTA',409)
 
      
 
 app.run(host='0.0.0.0')
+  
+
+
+  
+
+
+
+
+
   
 
 
