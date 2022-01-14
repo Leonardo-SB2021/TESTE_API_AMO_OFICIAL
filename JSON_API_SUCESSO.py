@@ -161,7 +161,10 @@ def buscar(ida,volta,data_saida,data_volta):
                           'VELOCIDADE: IDA/VOLTA':velocidade_ida_volta,'CUSTO-KM: IDA/VOLTA':custo_ida_volta,
                           'PASSAGEM: IDA/VOLTA':passagem_ida_volta,'TAXA-SERV: IDA/VOLTA':taxa_ida_volta,
                           'TOTAL':total_ida_volta}
-    return dic_valores
+    dados_comb = pd.DataFrame(data=dic_valores)
+    dados_comb = dados_comb.sort_values(by=['TOTAL'])
+    return dados_comb
+    
 
   ### FUNÇÃO QUE TEM COMO OBJETIVO VALIDAR SE O AEROPORTO ESTA NA BASE DE DADOS ###
 
@@ -191,8 +194,9 @@ def buscar(ida,volta,data_saida,data_volta):
     if type(dados_1)!= str:
       
       voos_combinados = combina_voos(dados_1,dados_2)
+      js = voos_combinados.to_json(orient = 'columns')
       response = app.response_class(
-        response=json.dumps(voos_combinados),
+        response=js,
         status=200,
         mimetype='application/json')
       return response
@@ -216,8 +220,6 @@ app.run(host='0.0.0.0')
 
 
 
-
-  
 
 
   
