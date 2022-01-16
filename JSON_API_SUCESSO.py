@@ -1,7 +1,6 @@
 
 
 
-
 from flask import Flask
 from flask import jsonify
 import pandas as pd
@@ -174,9 +173,9 @@ def buscar(ida,volta,data_saida,data_volta):
     res = requests.get(url, auth=('test','tB7vlD'))
     res = res.text
     obj = json.loads(res)
-    if (aero_1 in obj)  :
+    if (aero_1 in obj) and aero_1 != aero_2 :
       return True
-    if str(aero_1) == str(aero_2):
+    else:
       return False
 
    
@@ -186,7 +185,12 @@ def buscar(ida,volta,data_saida,data_volta):
   data_de_volta = data2.upper()
   valida_1 = valida(dado_inicio,dado_final)
 
+  if len(dado_inicio) <3 or len(dado_final) < 3  :
+    return ('ATENÇÃO : DESTINO COM PADRÃO INVALIDO ',409)
 
+  if data_de_ida == data_de_volta or len(data_de_ida) != 10 or len(data_de_volta) != 10 :
+
+    return ('ATENÇÃO : DATA DE IDA E IGUAL A DATA DE VOLTA / DATA DEVE SEGUIR O PADRÃO AAAA-MM-DD',409)
   if valida_1 and len(data_de_ida)==10 and len(data_de_volta)==10 and str(dado_inicio) != str( dado_final) :
 
     dados_1,dados_2 = busca_completa(dado_inicio,dado_final,data_de_ida,data_de_volta)
@@ -204,15 +208,12 @@ def buscar(ida,volta,data_saida,data_volta):
   else:
     if (valida_1 == False) or dado_inicio == dado_final  :
       return ('AEROPORTO INDISPONIVEL PARA CONSULTA / ACRONIMOS INVALIDOS DEVE SEGUIR O PADRÃO (ABC) / AEROPORTOS NÃO PODEM SER IGUAIS',404)
-    else :
-      return ('DATA INVALIDA : VOCÊ DEVE SEGUIR PADRÃO (AAAA-MM-DD) ',409)
-  if data_de_ida == data_de_volta  :
-    return ('ATENÇÃO : DATA DE IDA E IGUAL A DATA DE VOLTA',409)
 
-     
+    
 
 app.run(host='0.0.0.0')
   
+
 
 
   
